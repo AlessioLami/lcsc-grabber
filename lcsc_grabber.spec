@@ -43,7 +43,7 @@ if not os.path.exists(icon_file):
     icon_file = None
 
 a = Analysis(
-    ['lcsc_grabber.py'],
+    ['main.py'],
     pathex=[str(project_root)],
     binaries=[],
     datas=[
