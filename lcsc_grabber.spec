@@ -23,11 +23,18 @@ hiddenimports += [
     'wx._adv',
     'wx._core',
     'wx._controls',
+    'wx.glcanvas',
     'requests',
     'urllib3',
     'certifi',
     'charset_normalizer',
     'idna',
+    'OpenGL',
+    'OpenGL.GL',
+    'OpenGL.GLU',
+    'OpenGL.GLUT',
+    'OpenGL.platform.win32',
+    'numpy',
 ]
 
 # Platform-specific settings
@@ -57,7 +64,6 @@ a = Analysis(
     excludes=[
         'tkinter',
         'matplotlib',
-        'numpy',
         'pandas',
         'scipy',
         'PIL.ImageTk',

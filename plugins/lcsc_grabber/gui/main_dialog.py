@@ -12,7 +12,7 @@ from ..api.easyeda_client import EasyEdaClient, EasyEdaApiError
 from ..api.cache import CacheManager, get_cache
 from ..api.models import ComponentInfo
 from ..kicad.library_manager import LibraryManager, get_library_manager
-from .preview_panel import PreviewPanel
+from .preview_panel import PreviewPanel, Model3DPreviewPanel
 from .library_manager_dialog import show_library_manager_dialog
 
 
@@ -770,7 +770,10 @@ class LCSCGrabberDialog(wx.Dialog if wx else object):
         # Collapsible content panel
         self.model3d_content = wx.Panel(self.model3d_panel)
         self.model3d_content.SetBackgroundColour(T.BG_ELEVATED)
-        content_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        content_sizer = wx.BoxSizer(wx.VERTICAL)
+
+        # Controls row
+        controls_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         # Rotation controls
         rot_box = wx.StaticBox(self.model3d_content, label="Rotation (degrees)")
@@ -801,7 +804,7 @@ class LCSCGrabberDialog(wx.Dialog if wx else object):
         self.rot_z_ctrl.SetMinSize((70, -1))
         rot_sizer.Add(self.rot_z_ctrl, 0, wx.ALL, 2)
 
-        content_sizer.Add(rot_sizer, 0, wx.ALL, 4)
+        controls_sizer.Add(rot_sizer, 0, wx.ALL, 4)
 
         # Offset controls
         off_box = wx.StaticBox(self.model3d_content, label="Offset (mm)")
@@ -832,7 +835,21 @@ class LCSCGrabberDialog(wx.Dialog if wx else object):
         self.off_z_ctrl.SetMinSize((70, -1))
         off_sizer.Add(self.off_z_ctrl, 0, wx.ALL, 2)
 
-        content_sizer.Add(off_sizer, 0, wx.ALL, 4)
+        controls_sizer.Add(off_sizer, 0, wx.ALL, 4)
+        content_sizer.Add(controls_sizer, 0, wx.EXPAND)
+
+        # Mini 3D preview panel
+        self.config_3d_preview = Model3DPreviewPanel(self.model3d_content)
+        self.config_3d_preview.SetMinSize((-1, 150))
+        content_sizer.Add(self.config_3d_preview, 1, wx.EXPAND | wx.ALL, 4)
+
+        # Bind spin controls to update preview
+        self.rot_x_ctrl.Bind(wx.EVT_SPINCTRLDOUBLE, self._on_model3d_config_changed)
+        self.rot_y_ctrl.Bind(wx.EVT_SPINCTRLDOUBLE, self._on_model3d_config_changed)
+        self.rot_z_ctrl.Bind(wx.EVT_SPINCTRLDOUBLE, self._on_model3d_config_changed)
+        self.off_x_ctrl.Bind(wx.EVT_SPINCTRLDOUBLE, self._on_model3d_config_changed)
+        self.off_y_ctrl.Bind(wx.EVT_SPINCTRLDOUBLE, self._on_model3d_config_changed)
+        self.off_z_ctrl.Bind(wx.EVT_SPINCTRLDOUBLE, self._on_model3d_config_changed)
 
         self.model3d_content.SetSizer(content_sizer)
         model3d_sizer.Add(self.model3d_content, 0, wx.EXPAND)
@@ -951,6 +968,12 @@ class LCSCGrabberDialog(wx.Dialog if wx else object):
         self.rot_x_ctrl.SetValue(0)
         self.rot_y_ctrl.SetValue(0)
         self.rot_z_ctrl.SetValue(0)
+
+    def _on_model3d_config_changed(self, event):
+        """Update the 3D preview when rotation/offset controls change."""
+        offset, rotation = self._get_model3d_values()
+        self.config_3d_preview.set_model_transform(rotation, offset)
+        event.Skip()
 
     def _populate_categories(self):
         self.category_combo.Clear()
@@ -1113,12 +1136,24 @@ class LCSCGrabberDialog(wx.Dialog if wx else object):
             self._reset_model3d_controls()
 
         self.preview_panel.set_component(component)
+
+        # Update config 3D preview
+        if component.has_3d_model():
+            self.config_3d_preview.set_model(
+                component.model_3d_uuid,
+                component.lcsc_id
+            )
+            offset, rotation = self._get_model3d_values()
+            self.config_3d_preview.set_model_transform(rotation, offset)
+        else:
+            self.config_3d_preview.clear()
         self.Layout()
 
     def _clear_display(self):
         self.info_list.clear()
         self.datasheet_link.Hide()
         self.preview_panel.clear()
+        self.config_3d_preview.clear()
         self._reset_model3d_controls()
         self.Layout()
 

@@ -615,6 +615,10 @@ class Model3DPreviewPanel(wx.Panel if wx else object):
         self._rot_z = -45.0
         self._zoom = 1.0
 
+        # Model transform (KiCad-style rotation/offset for preview)
+        self._model_rot = (0.0, 0.0, 0.0)  # degrees
+        self._model_offset = (0.0, 0.0, 0.0)  # mm
+
         self._dragging = False
         self._last_mouse_pos = None
 
@@ -665,10 +669,21 @@ class Model3DPreviewPanel(wx.Panel if wx else object):
         self._rot_x = 25.0
         self._rot_z = -45.0
         self._zoom = 1.0
+        self._model_rot = (0.0, 0.0, 0.0)
+        self._model_offset = (0.0, 0.0, 0.0)
 
         if model_uuid:
             self._load_model()
 
+        if self._gl_canvas:
+            self._gl_canvas.Refresh()
+        else:
+            self.Refresh()
+
+    def set_model_transform(self, rotation: Tuple[float, float, float], offset: Tuple[float, float, float]):
+        """Set the model's transform (rotation in degrees, offset in mm) for preview."""
+        self._model_rot = rotation
+        self._model_offset = offset
         if self._gl_canvas:
             self._gl_canvas.Refresh()
         else:
@@ -864,8 +879,14 @@ class Model3DPreviewPanel(wx.Panel if wx else object):
 
         GL.glMatrixMode(GL.GL_MODELVIEW)
         GL.glLoadIdentity()
+        # View rotation (camera orbit)
         GL.glRotatef(self._rot_x, 1, 0, 0)
         GL.glRotatef(self._rot_z, 0, 1, 0)
+        # Model transform (KiCad-style rotation/offset) - applied first
+        GL.glTranslatef(self._model_offset[0] * 0.5, self._model_offset[1] * 0.5, self._model_offset[2] * 0.5)
+        GL.glRotatef(self._model_rot[2], 0, 0, 1)
+        GL.glRotatef(self._model_rot[1], 0, 1, 0)
+        GL.glRotatef(self._model_rot[0], 1, 0, 0)
 
         GL.glBegin(GL.GL_TRIANGLES)
         for indices, mtl in self._faces:
