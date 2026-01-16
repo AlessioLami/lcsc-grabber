@@ -1213,12 +1213,30 @@ class LCSCGrabberDialog(wx.Dialog if wx else object):
         self._update_status(message, status_type="success" if success else "error")
 
         if success:
-            wx.MessageBox(
-                f"{message}\n\nLibrary path:\n{self.library_manager.get_library_path()}",
-                "Import Complete",
-                wx.OK | wx.ICON_INFORMATION,
-                self
-            )
+            # Auto-register libraries with KiCad if not already done
+            if not self.library_manager.is_registered_with_kicad():
+                reg_success, reg_message = self.library_manager.register_libraries_with_kicad()
+                if reg_success:
+                    wx.MessageBox(
+                        f"{message}\n\n{reg_message}",
+                        "Import Complete",
+                        wx.OK | wx.ICON_INFORMATION,
+                        self
+                    )
+                else:
+                    wx.MessageBox(
+                        f"{message}\n\n{reg_message}\n\nLibrary path:\n{self.library_manager.get_library_path()}",
+                        "Import Complete",
+                        wx.OK | wx.ICON_WARNING,
+                        self
+                    )
+            else:
+                wx.MessageBox(
+                    f"{message}\n\nComponent ready to use in KiCad!",
+                    "Import Complete",
+                    wx.OK | wx.ICON_INFORMATION,
+                    self
+                )
 
 
 def show_dialog(parent=None):

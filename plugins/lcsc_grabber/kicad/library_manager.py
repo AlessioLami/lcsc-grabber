@@ -689,6 +689,170 @@ class LibraryManager:
             return components
         return [c for c in components if c.get("category", self.DEFAULT_CATEGORY) == category]
 
+    def _get_kicad_config_dir(self) -> Optional[Path]:
+        """Find KiCad's configuration directory."""
+        import platform
+        system = platform.system()
+
+        if system == "Windows":
+            appdata = os.environ.get("APPDATA")
+            if appdata:
+                kicad_dir = Path(appdata) / "kicad"
+                # Try versioned directories first (8.0, 7.0, etc.)
+                if kicad_dir.exists():
+                    versions = sorted([d for d in kicad_dir.iterdir() if d.is_dir() and d.name[0].isdigit()], reverse=True)
+                    if versions:
+                        return versions[0]
+                    return kicad_dir
+        elif system == "Darwin":  # macOS
+            config_paths = [
+                Path.home() / "Library" / "Preferences" / "kicad",
+                Path.home() / ".config" / "kicad"
+            ]
+            for config_path in config_paths:
+                if config_path.exists():
+                    versions = sorted([d for d in config_path.iterdir() if d.is_dir() and d.name[0].isdigit()], reverse=True)
+                    if versions:
+                        return versions[0]
+                    return config_path
+        else:  # Linux
+            config_path = Path.home() / ".config" / "kicad"
+            if config_path.exists():
+                versions = sorted([d for d in config_path.iterdir() if d.is_dir() and d.name[0].isdigit()], reverse=True)
+                if versions:
+                    return versions[0]
+                return config_path
+
+        return None
+
+    def _parse_lib_table(self, content: str) -> Tuple[List[str], List[Dict[str, str]]]:
+        """Parse a KiCad library table file and return header lines and library entries."""
+        lines = content.strip().split('\n')
+        header_lines = []
+        libraries = []
+
+        for line in lines:
+            line = line.strip()
+            if line.startswith('(lib '):
+                # Parse library entry
+                name_match = re.search(r'\(name\s+"([^"]+)"\)', line)
+                uri_match = re.search(r'\(uri\s+"([^"]+)"\)', line)
+                type_match = re.search(r'\(type\s+"([^"]+)"\)', line)
+                if name_match:
+                    libraries.append({
+                        'name': name_match.group(1),
+                        'uri': uri_match.group(1) if uri_match else '',
+                        'type': type_match.group(1) if type_match else 'KiCad',
+                        'raw': line
+                    })
+            elif line and not line.startswith(')'):
+                header_lines.append(line)
+
+        return header_lines, libraries
+
+    def _add_to_lib_table(self, table_path: Path, lib_name: str, lib_uri: str, lib_type: str = "KiCad") -> bool:
+        """Add a library entry to a KiCad library table file."""
+        try:
+            if table_path.exists():
+                content = table_path.read_text(encoding='utf-8')
+                header_lines, libraries = self._parse_lib_table(content)
+
+                # Check if library already exists
+                for lib in libraries:
+                    if lib['name'] == lib_name:
+                        logger.info(f"Library '{lib_name}' already registered in {table_path}")
+                        return True
+            else:
+                # Create new table
+                if 'sym' in table_path.name:
+                    header_lines = ['(sym_lib_table', '  (version 7)']
+                else:
+                    header_lines = ['(fp_lib_table', '  (version 7)']
+                libraries = []
+
+            # Add the new library
+            new_entry = f'  (lib (name "{lib_name}")(type "{lib_type}")(uri "{lib_uri}")(options "")(descr "LCSC Grabber imported components"))'
+
+            # Rebuild the file
+            output_lines = header_lines.copy()
+            for lib in libraries:
+                output_lines.append(lib['raw'])
+            output_lines.append(new_entry)
+            output_lines.append(')')
+
+            table_path.write_text('\n'.join(output_lines) + '\n', encoding='utf-8')
+            logger.info(f"Added library '{lib_name}' to {table_path}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to update {table_path}: {e}")
+            return False
+
+    def register_libraries_with_kicad(self) -> Tuple[bool, str]:
+        """
+        Automatically register LCSC Grabber libraries with KiCad.
+        Returns (success, message).
+        """
+        config_dir = self._get_kicad_config_dir()
+        if not config_dir:
+            return (False, "Could not find KiCad configuration directory. Please add libraries manually.")
+
+        results = []
+        all_success = True
+
+        # Get all categories to register
+        categories = [cat['id'] for cat in self.get_categories()]
+
+        # Register symbol libraries
+        sym_table = config_dir / "sym-lib-table"
+        for cat_id in categories:
+            sym_path = self._get_symbol_lib_for_category(cat_id)
+            if sym_path.exists():
+                lib_name = f"lcsc_{cat_id}"
+                success = self._add_to_lib_table(sym_table, lib_name, str(sym_path))
+                if success:
+                    results.append(f"Symbol library '{lib_name}' registered")
+                else:
+                    all_success = False
+                    results.append(f"Failed to register symbol library '{lib_name}'")
+
+        # Register footprint libraries
+        fp_table = config_dir / "fp-lib-table"
+        for cat_id in categories:
+            fp_path = self._get_footprint_lib_for_category(cat_id)
+            if fp_path.exists():
+                lib_name = f"lcsc_{cat_id}"
+                success = self._add_to_lib_table(fp_table, lib_name, str(fp_path))
+                if success:
+                    results.append(f"Footprint library '{lib_name}' registered")
+                else:
+                    all_success = False
+                    results.append(f"Failed to register footprint library '{lib_name}'")
+
+        if all_success:
+            msg = "Libraries registered with KiCad successfully!\n\n"
+            msg += "Note: If KiCad is open, restart it or go to:\n"
+            msg += "Preferences > Manage Symbol/Footprint Libraries > OK\n"
+            msg += "to reload the library tables."
+        else:
+            msg = "Some libraries could not be registered:\n" + "\n".join(results)
+
+        return (all_success, msg)
+
+    def is_registered_with_kicad(self) -> bool:
+        """Check if libraries are already registered with KiCad."""
+        config_dir = self._get_kicad_config_dir()
+        if not config_dir:
+            return False
+
+        sym_table = config_dir / "sym-lib-table"
+        if sym_table.exists():
+            content = sym_table.read_text(encoding='utf-8')
+            if 'lcsc_' in content:
+                return True
+
+        return False
+
     def get_kicad_config_instructions(self) -> str:
         return f"""
 To use LCSC Grabber libraries in KiCad:
