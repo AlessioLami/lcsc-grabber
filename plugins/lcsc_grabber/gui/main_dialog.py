@@ -4,6 +4,7 @@ from typing import Optional, List
 
 try:
     import wx
+    import wx.adv
 except ImportError:
     wx = None
 
