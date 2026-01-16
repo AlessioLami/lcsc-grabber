@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=LCSC Grabber
+Comment=Import electronic components from LCSC/EasyEDA into KiCad
+Exec=lcsc-grabber
+Icon=lcsc-grabber-icon
+Terminal=false
+Type=Application
+Categories=Electronics;Engineering;Development;
+Keywords=kicad;lcsc;easyeda;electronics;pcb;schematic;

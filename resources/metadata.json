@@ -1,0 +1,41 @@
+{
+  "$schema": "https://go.kicad.org/pcm/schemas/v1",
+  "name": "LCSC Grabber",
+  "description": "Import electronic components from LCSC/EasyEDA catalog directly into KiCad. Search by LCSC part number, preview symbols and footprints, and import schematic symbols, PCB footprints, and 3D models.",
+  "description_full": "LCSC Grabber is a KiCad plugin that allows you to search, preview, and import electronic components from the LCSC/EasyEDA catalog directly into KiCad.\n\nFeatures:\n- Search components by LCSC part number\n- Preview schematic symbols and PCB footprints before import\n- Import symbols, footprints, and 3D models (STEP format)\n- Automatic library management with duplicate detection\n- Local caching for offline usage\n- Support for KiCad 7 and later\n\nThe plugin fetches component data from EasyEDA's component database (same source as JLCPCB's parts library) and converts it to KiCad format.\n\nNote: The correctness of imported symbols and footprints should be verified before production use.",
+  "identifier": "com.github.alessiolami.lcsc-grabber-kicad",
+  "type": "plugin",
+  "author": {
+    "name": "Alessio Lami",
+    "contact": {
+      "github": "https://github.com/AlessioLami"
+    }
+  },
+  "maintainer": {
+    "name": "Alessio Lami",
+    "contact": {
+      "github": "https://github.com/AlessioLami"
+    }
+  },
+  "license": "MIT",
+  "resources": {
+    "homepage": "https://github.com/AlessioLami/lcsc-grabber-kicad"
+  },
+  "versions": [
+    {
+      "version": "1.0.0",
+      "status": "stable",
+      "kicad_version": "7.0",
+      "kicad_version_max": "9.99",
+      "download_sha256": "25ce637d9e1dc851254fa88a61d3dbccf9d492811d5a5d26af1f3fa60b329f41",
+      "download_size": 44533,
+      "download_url": "https://github.com/AlessioLami/lcsc-grabber-kicad/releases/download/v1.0.0/lcsc-grabber-kicad-v1.0.0.zip",
+      "install_size": 90000,
+      "platforms": [
+        "windows",
+        "macos",
+        "linux"
+      ]
+    }
+  ]
+}

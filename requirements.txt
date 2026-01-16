@@ -1,0 +1,17 @@
+# LCSC Grabber Requirements
+# Note: When running inside KiCad, wxPython is already available
+# These are only needed for development/testing outside KiCad
+
+# wxPython for GUI (bundled with KiCad)
+# wxPython>=4.0.0
+
+# No external dependencies required!
+# The plugin uses only Python standard library modules:
+# - json
+# - urllib.request
+# - sqlite3
+# - pathlib
+# - logging
+# - threading
+# - re
+# - math
