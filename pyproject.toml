@@ -15,6 +15,7 @@ requires-python = ">=3.8"
 dependencies = [
     "wxPython>=4.0",
     "requests>=2.25",
+    "easyeda2kicad>=0.8.0",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",

@@ -5,13 +5,5 @@
 # wxPython for GUI (bundled with KiCad)
 # wxPython>=4.0.0
 
-# No external dependencies required!
-# The plugin uses only Python standard library modules:
-# - json
-# - urllib.request
-# - sqlite3
-# - pathlib
-# - logging
-# - threading
-# - re
-# - math
+# easyeda2kicad for component conversion
+easyeda2kicad>=0.8.0
